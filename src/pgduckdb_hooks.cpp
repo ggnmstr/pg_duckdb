@@ -66,14 +66,9 @@ ContainsCatalogTable(List *rtes) {
 }
 
 static bool
-IsDuckdbTable(Oid relid) {
-	return pgduckdb::DuckdbTableAmGetName(relid) != nullptr;
-}
-
-static bool
 ContainsDuckdbTables(List *rte_list) {
 	foreach_node(RangeTblEntry, rte, rte_list) {
-		if (IsDuckdbTable(rte->relid)) {
+		if (pgduckdb::IsDuckdbTable(rte->relid)) {
 			return true;
 		}
 	}
@@ -160,7 +155,7 @@ ContainsPostgresTable(Node *node, void *context) {
 				/* Any tables referenced in the view will also be in the rtable */
 				continue;
 			}
-			if (!::IsDuckdbTable(rte->relid)) {
+			if (!pgduckdb::IsDuckdbTable(rte->relid)) {
 				return true;
 			}
 		}
@@ -229,12 +224,10 @@ IsAllowedStatement(Query *query, bool throw_error) {
 	if (query->commandType != CMD_SELECT) {
 		if (query->rtable != NULL) {
 			RangeTblEntry *resultRte = list_nth_node(RangeTblEntry, query->rtable, query->resultRelation - 1);
-			if (!::IsDuckdbTable(resultRte->relid)) {
-				elog(elevel, "DuckDB does not support modifying Postgres tables");
+			if (!pgduckdb::IsDuckdbTable(resultRte->relid) && !IsAllowedPostgresInsert(query, throw_error)) {
 				return false;
 			}
 		}
-
 		if (pgduckdb::DidDisallowedMixedWrites()) {
 			elog(elevel, "Writing to DuckDB and Postgres tables in the same transaction block is not supported");
 			return false;

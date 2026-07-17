@@ -582,6 +582,11 @@ IsDuckdbTableAm(const TableAmRoutine *am) {
 	return am == &duckdb_methods;
 }
 
+bool
+IsDuckdbTable(Oid relid) {
+	return DuckdbTableAmGetName(relid) != nullptr;
+}
+
 const char *
 DuckdbTableAmGetName(const TableAmRoutine *am) {
 	auto it = duckdb_table_ams.find(am);
